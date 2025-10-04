@@ -18,6 +18,7 @@ from launch.substitutions import (
     PythonExpression,
 )
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
 from nav2_common.launch import ReplaceString
 
@@ -33,6 +34,7 @@ def generate_launch_description():
     robot_model = LaunchConfiguration("robot_model")
     robot_description = LaunchConfiguration("robot_description")
     use_sim = LaunchConfiguration("use_sim", default="False")
+    include_nerf_launcher = LaunchConfiguration("include_nerf_launcher", default="False")
 
     base_controller_prefix = PythonExpression(
         ["'mecanum_drive' if ", mecanum, " else 'diff_drive'"]
@@ -83,10 +85,23 @@ def generate_launch_description():
         choices=["robot", "robot_xl"],
     )
 
+    declare_namespace_arg = DeclareLaunchArgument(
+        "namespace",
+        default_value="",
+        description="Namespace for all launched nodes.",
+    )
+
     declare_robot_description_arg = DeclareLaunchArgument(
         "robot_description",
         default_value="",
         description="Robot description XML passed to ros2_control_node.",
+    )
+
+    declare_include_nerf_arg = DeclareLaunchArgument(
+        "include_nerf_launcher",
+        default_value="False",
+        description="Whether to include the Nerf launcher component in the URDF",
+        choices=["True", "False"],
     )
 
     ns = PythonExpression(["'", namespace, "' + '/' if '", namespace, "' else ''"])
@@ -105,6 +120,7 @@ def generate_launch_description():
             "mock_joints": "False",
             "robot_model": robot_model,
             "use_sim": use_sim,
+            "include_nerf_launcher": include_nerf_launcher,
         }.items(),
     )
 
@@ -113,7 +129,7 @@ def generate_launch_description():
         package="controller_manager",
         executable="ros2_control_node",
         parameters=[
-            {"robot_description": robot_description},
+            {"robot_description": ParameterValue(robot_description, value_type=str)},
             ns_controller_config,
         ],
         remappings=[
@@ -168,6 +184,32 @@ def generate_launch_description():
         ],
     )
 
+    nerf_servo_controller = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=[
+            "nerf_servo_controller",
+            "-c",
+            "controller_manager",
+            "--controller-manager-timeout",
+            "20",
+        ],
+        condition=IfCondition(include_nerf_launcher),
+    )
+
+    nerf_flywheel_controller = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=[
+            "nerf_flywheel_controller",
+            "-c",
+            "controller_manager",
+            "--controller-manager-timeout",
+            "20",
+        ],
+        condition=IfCondition(include_nerf_launcher),
+    )
+
     manipulator_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
@@ -177,10 +219,17 @@ def generate_launch_description():
         condition=IfCondition(manipulator),
     )
 
-    controllers = [joint_state_broadcaster, imu_broadcaster, drive_controller]
+    controllers = [
+        joint_state_broadcaster,
+        imu_broadcaster,
+        drive_controller,
+        nerf_servo_controller,
+        nerf_flywheel_controller,
+    ]
 
     # spawners expect ros2_control_node to be running
-    delayed_controllers = TimerAction(period=4.0, actions=controllers)
+    # Allow Gazebo to finish inserting the model and starting gz_ros2_control
+    delayed_controllers = TimerAction(period=6.0, actions=controllers)
 
     # Delay start of manipulator
     delayed_manipulator_launch = TimerAction(period=8.0, actions=[manipulator_launch])
@@ -210,8 +259,10 @@ def generate_launch_description():
             declare_configuration_arg,
             declare_manipulator_serial_port_arg,
             declare_robot_model_arg,
+            declare_namespace_arg,
             declare_mecanum_arg,  # mecanum base on robot_model arg
             declare_robot_description_arg,
+            declare_include_nerf_arg,
             declare_controller_config_arg,  # controler_config base on mecanum and robot_model arg
             load_urdf,
             control_node,

@@ -10,6 +10,10 @@
       type: imu_sensor_broadcaster/IMUSensorBroadcaster
     drive_controller:
       type: mecanum_drive_controller/MecanumDriveController
+    nerf_servo_controller:
+      type: position_controllers/JointGroupPositionController
+    nerf_flywheel_controller:
+      type: forward_command_controller/ForwardCommandController
 
 /**/imu_broadcaster:
   ros__parameters:
@@ -124,4 +128,17 @@
         # min_velocity -  When unspecified, -max_velocity is used
         max_acceleration: 3.0 # rad/s^2
         # min_acceleration - When unspecified, -max_acceleration is used.
-        max_jerk: 0.0 # rad/s^3
+    max_jerk: 0.0 # rad/s^3
+
+/**/nerf_servo_controller:
+  ros__parameters:
+    joints:
+      - pan_servo_joint
+      - tilt_servo_joint
+
+/**/nerf_flywheel_controller:
+  ros__parameters:
+    joints:
+      - esc_left_joint
+      - esc_right_joint
+    interface_name: velocity

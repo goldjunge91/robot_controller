@@ -10,6 +10,10 @@
       type: imu_sensor_broadcaster/IMUSensorBroadcaster
     drive_controller:
       type: mecanum_drive_controller/MecanumDriveController
+    nerf_servo_controller:
+      type: position_controllers/JointGroupPositionController
+    nerf_flywheel_controller:
+      type: forward_command_controller/ForwardCommandController
     manipulator_controller:
       type: joint_trajectory_controller/JointTrajectoryController
     gripper_controller:
@@ -128,7 +132,7 @@
         # min_velocity -  When unspecified, -max_velocity is used
         max_acceleration: 3.0 # rad/s^2
         # min_acceleration - When unspecified, -max_acceleration is used.
-        max_jerk: 0.0 # rad/s^3
+    max_jerk: 0.0 # rad/s^3
 
 # Based on: https://github.com/ROBOTIS-GIT/open_manipulator/blob/humble/open_manipulator_x_bringup/config/hardware_controller_manager.yaml
 /**/manipulator_controller:
@@ -166,3 +170,16 @@
     command_interfaces:
       - position
     conversion_factor: 0.0001
+
+/**/nerf_servo_controller:
+  ros__parameters:
+    joints:
+      - pan_servo_joint
+      - tilt_servo_joint
+
+/**/nerf_flywheel_controller:
+  ros__parameters:
+    joints:
+      - esc_left_joint
+      - esc_right_joint
+    interface_name: velocity
