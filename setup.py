@@ -41,7 +41,10 @@ setup(
     maintainer_email="contact@husarion.com",
     description="Hardware configuration for robot Series",
     license="Apache License 2.0",
-    tests_require=["pytest"],
+    # tests_require=["pytest"],
+    extras_require={
+    'test': ['pytest'],
+    },
     entry_points={
         "console_scripts": [],
     },
