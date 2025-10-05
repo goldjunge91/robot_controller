@@ -70,19 +70,19 @@ def generate_launch_description():
         description="Port to connect to the manipulator.",
     )
 
-    default_mecanum_value = PythonExpression(["'", robot_model, "' == 'robot_xl'"])
+    # Always use mecanum drive for robot_xl (only supported model)
     declare_mecanum_arg = DeclareLaunchArgument(
         "mecanum",
-        default_value=default_mecanum_value,
+        default_value="True",
         description="Whether to use mecanum drive controller, otherwise use diff drive",
         choices=["True", "False"],
     )
 
     declare_robot_model_arg = DeclareLaunchArgument(
         "robot_model",
-        default_value=EnvironmentVariable("ROBOT_MODEL_NAME", default_value=""),
-        description="Specify robot model",
-        choices=["robot", "robot_xl"],
+        default_value=EnvironmentVariable("ROBOT_MODEL_NAME", default_value="robot_xl"),
+        description="Specify robot model (only robot_xl supported)",
+        choices=["robot_xl"],
     )
 
     declare_namespace_arg = DeclareLaunchArgument(
