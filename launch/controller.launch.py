@@ -185,7 +185,7 @@ def generate_launch_description():
                 "joint_state_broadcaster/transition_event",
                 "_joint_state_broadcaster/transition_event",
             ),  # Joint-State-Events
-            ("~/motors_cmd", "/ddd/cmd_vel"),  # Motor-Befehle an Pico
+            ("~/motors_cmd", "/motors_cmd"),  # Motor-Befehle (Float32MultiArray) - internes Topic
             ("~/motors_response", "/joint_states"),  # Motor-Feedback vom Pico
         ],
         condition=UnlessCondition(use_sim),  # Nur starten wenn NICHT in Simulation
