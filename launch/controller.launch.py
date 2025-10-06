@@ -136,14 +136,14 @@ def generate_launch_description():
             ("drive_controller/cmd_vel_unstamped", "cmd_vel"),
             ("drive_controller/odom", "odometry/wheels"),
             ("drive_controller/transition_event", "_drive_controller/transition_event"),
-            ("imu_sensor_node/imu", "/_imu/data_raw"),
+            ("imu_sensor_node/imu", "/ddd/imu"),
             ("imu_broadcaster/transition_event", "_imu_broadcaster/transition_event"),
             (
                 "joint_state_broadcaster/transition_event",
                 "_joint_state_broadcaster/transition_event",
             ),
-            ("~/motors_cmd", "/_motors_cmd"),
-            ("~/motors_response", "/_motors_response"),
+            ("~/motors_cmd", "/ddd/cmd_vel"),
+            ("~/motors_response", "/joint_states"),
         ],
         condition=UnlessCondition(use_sim),
     )
