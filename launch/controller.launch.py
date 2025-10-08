@@ -57,6 +57,8 @@ def generate_launch_description():
     use_sim = LaunchConfiguration("use_sim", default="False")
     # Liest ob Nerf-Launcher eingebunden werden soll (Standard: False)
     include_nerf_launcher = LaunchConfiguration("include_nerf_launcher", default="False")
+    # Liest ob IMU-Broadcaster gestartet werden soll (Standard: False)
+    use_imu = LaunchConfiguration("use_imu", default="False")
 
     # Bestimmt den Controller-Typ basierend auf Mecanum-Flag ('mecanum_drive' oder 'diff_drive')
     base_controller_prefix = PythonExpression(
@@ -136,6 +138,14 @@ def generate_launch_description():
         "include_nerf_launcher",
         default_value="False",
         description="Whether to include the Nerf launcher component in the URDF",
+        choices=["True", "False"],
+    )
+
+    # Deklariert das Launch-Argument für IMU-Broadcaster
+    declare_use_imu_arg = DeclareLaunchArgument(
+        "use_imu",
+        default_value="False",
+        description="Whether to start the IMU broadcaster (requires IMU enabled in firmware)",
         choices=["True", "False"],
     )
 
@@ -227,6 +237,7 @@ def generate_launch_description():
             "--controller-manager-timeout",
             "20",
         ],
+        condition=IfCondition(use_imu),  # Nur wenn use_imu=True
     )
 
     # Spawnt den Nerf-Servo-Controller (steuert Pan/Tilt-Servos) - nur wenn Nerf-Launcher aktiv
@@ -270,7 +281,7 @@ def generate_launch_description():
     # Liste aller Controller die gestartet werden sollen
     controllers = [
         joint_state_broadcaster,  # Joint-State-Broadcaster
-        imu_broadcaster,  # IMU-Broadcaster
+        imu_broadcaster,  # IMU-Broadcaster (bedingt, wenn use_imu=True)
         drive_controller,  # Antriebs-Controller
         nerf_servo_controller,  # Nerf-Servo-Controller (bedingt)
         nerf_flywheel_controller,  # Nerf-Flywheel-Controller (bedingt)
@@ -320,6 +331,7 @@ def generate_launch_description():
             declare_mecanum_arg,  # Deklariert Mecanum-Argument (basiert auf robot_model)
             declare_robot_description_arg,  # Deklariert Roboterbeschreibungs-Argument
             declare_include_nerf_arg,  # Deklariert Nerf-Launcher-Argument
+            declare_use_imu_arg,  # Deklariert IMU-Argument
             declare_controller_config_arg,  # Deklariert Controller-Config-Argument (basiert auf mecanum und robot_model)
             load_urdf,  # Lädt URDF/Roboterbeschreibung
             control_node,  # Startet ros2_control Node
