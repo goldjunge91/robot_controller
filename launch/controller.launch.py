@@ -57,8 +57,6 @@ def generate_launch_description():
     use_sim = LaunchConfiguration("use_sim", default="False")
     # Liest ob Nerf-Launcher eingebunden werden soll (Standard: False)
     include_nerf_launcher = LaunchConfiguration("include_nerf_launcher", default="False")
-    # Liest ob IMU-Broadcaster gestartet werden soll (Standard: False)
-    use_imu = LaunchConfiguration("use_imu", default="False")
 
     # Bestimmt den Controller-Typ basierend auf Mecanum-Flag ('mecanum_drive' oder 'diff_drive')
     base_controller_prefix = PythonExpression(
@@ -141,14 +139,6 @@ def generate_launch_description():
         choices=["True", "False"],
     )
 
-    # Deklariert das Launch-Argument für IMU-Broadcaster
-    declare_use_imu_arg = DeclareLaunchArgument(
-        "use_imu",
-        default_value="False",
-        description="Whether to start the IMU broadcaster (requires IMU enabled in firmware)",
-        choices=["True", "False"],
-    )
-
     # Erstellt Namespace-String mit Slash wenn nicht leer, sonst leer
     ns = PythonExpression(["'", namespace, "' + '/' if '", namespace, "' else ''"])
     # Ersetzt Namespace-Platzhalter in der Controller-Konfiguration
@@ -189,7 +179,7 @@ def generate_launch_description():
             ("drive_controller/cmd_vel_unstamped", "cmd_vel"),  # Geschwindigkeitsbefehle → Pico
             ("drive_controller/odom", "odometry/wheels"),  # Rad-Odometrie
             ("drive_controller/transition_event", "_drive_controller/transition_event"),  # Controller-Events
-            ("imu_sensor_node/imu", "/imu/data_raw"),  # IMU-Daten vom Pico (micro-ROS)
+            ("imu_sensor_node/imu", "/robot_system_node/imu"),  # IMU-Daten vom micro-ROS Agent
             ("imu_broadcaster/transition_event", "_imu_broadcaster/transition_event"),  # IMU-Events
             (
                 "joint_state_broadcaster/transition_event",
@@ -226,19 +216,8 @@ def generate_launch_description():
         ],
     )
 
-    # Spawnt den IMU-Broadcaster (veröffentlicht IMU-Daten)
-    imu_broadcaster = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=[
-            "imu_broadcaster",  # Name des IMU-Broadcasters
-            "-c",
-            "controller_manager",
-            "--controller-manager-timeout",
-            "20",
-        ],
-        condition=IfCondition(use_imu),  # Nur wenn use_imu=True
-    )
+    # IMU-Broadcaster deaktiviert - IMU ist in Firmware nicht aktiv
+    # Kann später wieder aktiviert werden wenn IMU benötigt wird
 
     # Spawnt den Nerf-Servo-Controller (steuert Pan/Tilt-Servos) - nur wenn Nerf-Launcher aktiv
     nerf_servo_controller = Node(
@@ -290,13 +269,6 @@ def generate_launch_description():
     # Spawner erwarten dass ros2_control_node läuft
     # Gibt Gazebo Zeit das Modell einzufügen und gz_ros2_control zu starten
     delayed_controllers = TimerAction(period=6.0, actions=controllers)
-    
-    # IMU-Broadcaster separat mit Bedingung (nur wenn use_imu=True)
-    delayed_imu_broadcaster = TimerAction(
-        period=6.0, 
-        actions=[imu_broadcaster],
-        condition=IfCondition(use_imu)
-    )
 
     # Verzögert den Start des Manipulators um 8 Sekunden
     delayed_manipulator_launch = TimerAction(period=8.0, actions=[manipulator_launch])
@@ -337,7 +309,6 @@ def generate_launch_description():
             declare_mecanum_arg,  # Deklariert Mecanum-Argument (basiert auf robot_model)
             declare_robot_description_arg,  # Deklariert Roboterbeschreibungs-Argument
             declare_include_nerf_arg,  # Deklariert Nerf-Launcher-Argument
-            declare_use_imu_arg,  # Deklariert IMU-Argument
             declare_controller_config_arg,  # Deklariert Controller-Config-Argument (basiert auf mecanum und robot_model)
             load_urdf,  # Lädt URDF/Roboterbeschreibung
             control_node,  # Startet ros2_control Node
