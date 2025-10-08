@@ -175,17 +175,53 @@ def generate_launch_description():
             ns_controller_config,  # Controller-Konfiguration
         ],
         # Topic-Remappings für einheitliche Schnittstellen
+        # Diese Remappings verbinden die ros2_control Hardware-Interfaces mit den standardisierten ROS2-Topics
         remappings=[
-            ("drive_controller/cmd_vel_unstamped", "cmd_vel"),  # Geschwindigkeitsbefehle → Pico
-            ("drive_controller/odom", "odometry/wheels"),  # Rad-Odometrie
-            ("drive_controller/transition_event", "_drive_controller/transition_event"),  # Controller-Events
-            ("imu_sensor_node/imu", "/robot_system_node/imu"),  # IMU-Daten vom micro-ROS Agent
-            ("imu_broadcaster/transition_event", "_imu_broadcaster/transition_event"),  # IMU-Events
+            # Data Flow: mecanum_drive_controller → RobotSystem HW Interface → /cmd_vel → micro-ROS Agent → Pico Firmware
+            # Publisher: mecanum_drive_controller (publishes cmd_vel_unstamped)
+            # Subscriber: RobotSystem hardware interface (subscribes to /cmd_vel, converts to Twist and publishes to firmware)
+            # Purpose: Velocity commands from controller to robot base motors
+            ("drive_controller/cmd_vel_unstamped", "cmd_vel"),
+            
+            # Data Flow: mecanum_drive_controller → /odometry/wheels
+            # Publisher: mecanum_drive_controller (computes odometry from wheel velocities)
+            # Subscriber: robot_localization EKF, navigation stack
+            # Purpose: Wheel-based odometry estimation for sensor fusion and navigation
+            ("drive_controller/odom", "odometry/wheels"),
+            
+            # Data Flow: drive_controller lifecycle events → hidden topic
+            # Publisher: drive_controller (lifecycle state transitions)
+            # Subscriber: controller_manager (monitors controller state)
+            # Purpose: Internal controller lifecycle management (hidden with _ prefix)
+            ("drive_controller/transition_event", "_drive_controller/transition_event"),
+            
+            # Data Flow: Pico Firmware → micro-ROS Agent → /imu/data_raw → RobotImuSensor HW Interface → imu_broadcaster
+            # Publisher: Pico firmware (ICM20948 sensor via ImuAgent)
+            # Subscriber: RobotImuSensor hardware interface (reads IMU data and exposes to imu_broadcaster)
+            # Purpose: Raw IMU data (orientation, angular velocity, linear acceleration) for sensor fusion
+            ("imu_sensor_node/imu", "/imu/data_raw"),
+            
+            # Data Flow: imu_broadcaster lifecycle events → hidden topic
+            # Publisher: imu_broadcaster (lifecycle state transitions)
+            # Subscriber: controller_manager (monitors broadcaster state)
+            # Purpose: Internal broadcaster lifecycle management (hidden with _ prefix)
+            ("imu_broadcaster/transition_event", "_imu_broadcaster/transition_event"),
+            
+            # Data Flow: joint_state_broadcaster lifecycle events → hidden topic
+            # Publisher: joint_state_broadcaster (lifecycle state transitions)
+            # Subscriber: controller_manager (monitors broadcaster state)
+            # Purpose: Internal broadcaster lifecycle management (hidden with _ prefix)
             (
                 "joint_state_broadcaster/transition_event",
                 "_joint_state_broadcaster/transition_event",
-            ),  # Joint-State-Events
-            ("~/motors_response", "/joint_states"),  # Motor-Feedback vom micro-ROS Agent (Pico)
+            ),
+            
+            # Data Flow: Pico Firmware → micro-ROS Agent → /joint_states → RobotSystem HW Interface → joint_state_broadcaster
+            # Publisher: Pico firmware (MotorsAgent publishes encoder positions and velocities)
+            # Subscriber: RobotSystem hardware interface (reads joint states and exposes to joint_state_broadcaster)
+            # Purpose: Real-time wheel encoder feedback for controller and robot state publisher
+            # Note: This is the critical connection that enables real hardware mode (not mock mode)
+            ("~/motors_response", "/joint_states"),
         ],
         condition=UnlessCondition(use_sim),  # Nur starten wenn NICHT in Simulation
     )
