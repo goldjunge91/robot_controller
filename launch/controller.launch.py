@@ -216,8 +216,18 @@ def generate_launch_description():
         ],
     )
 
-    # IMU-Broadcaster deaktiviert - IMU ist in Firmware nicht aktiv
-    # Kann später wieder aktiviert werden wenn IMU benötigt wird
+    # Spawnt den IMU-Broadcaster (veröffentlicht IMU-Daten)
+    imu_broadcaster = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=[
+            "imu_broadcaster",  # Name des IMU-Broadcasters
+            "-c",
+            "controller_manager",
+            "--controller-manager-timeout",
+            "20",
+        ],
+    )
 
     # Spawnt den Nerf-Servo-Controller (steuert Pan/Tilt-Servos) - nur wenn Nerf-Launcher aktiv
     nerf_servo_controller = Node(
@@ -260,6 +270,7 @@ def generate_launch_description():
     # Liste aller Controller die gestartet werden sollen
     controllers = [
         joint_state_broadcaster,  # Joint-State-Broadcaster
+        imu_broadcaster,  # IMU-Broadcaster
         drive_controller,  # Antriebs-Controller
         nerf_servo_controller,  # Nerf-Servo-Controller (bedingt)
         nerf_flywheel_controller,  # Nerf-Flywheel-Controller (bedingt)
@@ -313,7 +324,6 @@ def generate_launch_description():
             load_urdf,  # Lädt URDF/Roboterbeschreibung
             control_node,  # Startet ros2_control Node
             delayed_controllers,  # Startet Controller nach 6 Sekunden
-            delayed_imu_broadcaster,  # Startet IMU-Broadcaster nach 6 Sekunden (nur wenn use_imu=True)
             delayed_manipulator_launch,  # Startet Manipulator nach 8 Sekunden
             controllers_monitor,  # Überwacht Controller auf Fehler
         ]
