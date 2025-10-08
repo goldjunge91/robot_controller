@@ -281,7 +281,6 @@ def generate_launch_description():
     # Liste aller Controller die gestartet werden sollen
     controllers = [
         joint_state_broadcaster,  # Joint-State-Broadcaster
-        imu_broadcaster,  # IMU-Broadcaster (bedingt, wenn use_imu=True)
         drive_controller,  # Antriebs-Controller
         nerf_servo_controller,  # Nerf-Servo-Controller (bedingt)
         nerf_flywheel_controller,  # Nerf-Flywheel-Controller (bedingt)
@@ -291,6 +290,13 @@ def generate_launch_description():
     # Spawner erwarten dass ros2_control_node läuft
     # Gibt Gazebo Zeit das Modell einzufügen und gz_ros2_control zu starten
     delayed_controllers = TimerAction(period=6.0, actions=controllers)
+    
+    # IMU-Broadcaster separat mit Bedingung (nur wenn use_imu=True)
+    delayed_imu_broadcaster = TimerAction(
+        period=6.0, 
+        actions=[imu_broadcaster],
+        condition=IfCondition(use_imu)
+    )
 
     # Verzögert den Start des Manipulators um 8 Sekunden
     delayed_manipulator_launch = TimerAction(period=8.0, actions=[manipulator_launch])
@@ -336,6 +342,7 @@ def generate_launch_description():
             load_urdf,  # Lädt URDF/Roboterbeschreibung
             control_node,  # Startet ros2_control Node
             delayed_controllers,  # Startet Controller nach 6 Sekunden
+            delayed_imu_broadcaster,  # Startet IMU-Broadcaster nach 6 Sekunden (nur wenn use_imu=True)
             delayed_manipulator_launch,  # Startet Manipulator nach 8 Sekunden
             controllers_monitor,  # Überwacht Controller auf Fehler
         ]
