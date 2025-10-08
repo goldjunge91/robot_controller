@@ -189,7 +189,7 @@ def generate_launch_description():
             ("drive_controller/cmd_vel_unstamped", "cmd_vel"),  # Geschwindigkeitsbefehle → Pico
             ("drive_controller/odom", "odometry/wheels"),  # Rad-Odometrie
             ("drive_controller/transition_event", "_drive_controller/transition_event"),  # Controller-Events
-            ("imu_sensor_node/imu", "/robot_system_node/imu"),  # IMU-Daten vom micro-ROS Agent
+            ("imu_sensor_node/imu", "/imu/data_raw"),  # IMU-Daten vom Pico (micro-ROS)
             ("imu_broadcaster/transition_event", "_imu_broadcaster/transition_event"),  # IMU-Events
             (
                 "joint_state_broadcaster/transition_event",
