@@ -13,14 +13,37 @@
 # limitations under the License.
 
 import itertools
-import os
+from pathlib import Path
 
 import xacro
 from ament_index_python.packages import get_package_share_directory
 
 
+def _shared_data_directories():
+    controller_share = Path(get_package_share_directory("robot_controller"))
+    description_share = Path(get_package_share_directory("robot_description"))
+    return controller_share, description_share
+
+
+def _available_robot_models():
+    controller_share, description_share = _shared_data_directories()
+    config_dir = controller_share / "config"
+    urdf_dir = description_share / "urdf"
+
+    if not config_dir.is_dir() or not urdf_dir.is_dir():
+        return []
+
+    controller_models = {path.name for path in config_dir.iterdir() if path.is_dir()}
+    urdf_models = {
+        path.name.replace(".urdf.xacro", "") for path in urdf_dir.glob("*.urdf.xacro")
+    }
+    return sorted(controller_models & urdf_models)
+
+
 def test_robot_description_parsing():
-    robot_model_values = ["robot", "robot_xl"]
+    robot_model_values = _available_robot_models()
+    assert robot_model_values, "Expected controller and URDF data for at least one robot"
+
     mecanum_values = ["True", "False"]
     use_sim_values = ["True", "False"]
 
@@ -35,23 +58,22 @@ def test_robot_description_parsing():
     for combination in all_combinations:
         robot_model, mecanum, use_sim = combination
 
-        robot_controller = get_package_share_directory("robot_controller")
+        controller_share, description_share = _shared_data_directories()
         controller_config_filename = (
             "mecanum_drive_controller.yaml" if mecanum else "diff_drive_controller.yaml"
         )
-        controller_config = os.path.join(
-            robot_controller, "config", robot_model, controller_config_filename
+        controller_config = (
+            controller_share / "config" / robot_model / controller_config_filename
         )
 
         mappings = {
-            "controller_config": controller_config,
+            "controller_config": str(controller_config),
             "mecanum": mecanum,
             "use_sim": use_sim,
         }
-        robot_description = get_package_share_directory("robot_description")
-        xacro_path = os.path.join(robot_description, "urdf", f"{robot_model}.urdf.xacro")
+        xacro_path = description_share / "urdf" / f"{robot_model}.urdf.xacro"
         try:
-            xacro.process_file(xacro_path, mappings=mappings)
+            xacro.process_file(str(xacro_path), mappings=mappings)
         except xacro.XacroException as e:
             assert (
                 False
